@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+- "0.12"
+
+sudo: false
+
+before_script:
+- npm install -g  balderdashy/sails appdevdesigns/appdev-cli
+- cd /tmp
+- chmod +x /home/travis/build/appdevdesigns/opstool-relay/test/setup/install.sh
+- /home/travis/build/appdevdesigns/opstool-relay/test/setup/install.sh
+- cd ad-test/node_modules
+- mv /home/travis/build/appdevdesigns/opstool-relay .
+- cd opstool-relay
+- npm install
+
+script:
+- npm test
+ 
