@@ -33,7 +33,7 @@ module.exports = {
         application: {
             type: 'string',
             size: 80,
-        }
+        },
         
         // "aes", "rsa", or "plaintext"
         type: {
@@ -262,7 +262,7 @@ module.exports = {
             ], (err) => {
                 if (err) reject(err);
                 else resolve(results);
-            }
+            });
         });
     },
     
@@ -363,6 +363,7 @@ module.exports = {
                 // Delete decrypted packets. Packets that failed decryption will
                 // be skipped.
                 return RelayData.destroy({ id: IDs });
+            })
             .then(() => {
                 resolve(results);
             })
@@ -391,7 +392,7 @@ module.exports = {
             
             // Find application user's AES key
             RelayApplicationUser.find({ application: application, ren_id: renID })
-            .then((list) {
+            .then((list) => {
                 if (!list || !list[0]) {
                     throw new Error(`User ${renID} not found for application ${application}`);
                 }

@@ -37,7 +37,7 @@ module.exports = {
         application: {
             type: 'string',
             size: 80,
-        }
+        },
         
         aes_key: {
             type: 'mediumtext',
