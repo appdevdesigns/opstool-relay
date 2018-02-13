@@ -82,7 +82,7 @@ module.exports = {
                 return;
             }
             
-            process.nextTick(() => {
+            setImmediate(() => {
                 var rsa = new NodeRSA({ b: 2048 });
                 var privateKey = rsa.exportKey('private');
                 var publicKey = rsa.exportKey('public');
@@ -159,7 +159,23 @@ module.exports = {
                     var diff = _.difference(hrisRen, relayUsers);
                     console.log('Initializing ' + diff.length + ' relay accounts...');
                     
-                    // Initialize new users in parallel
+                    // Initialize new users one at a time
+                    async.eachSeries(diff, (renID, userDone) => {
+                        this.initializeUser(renID)
+                        .then(() => {
+                            console.log('...initialized user ' + renID);
+                            userDone();
+                        })
+                        .catch((err) => {
+                            userDone(err);
+                        });
+                    }, (err) => {
+                        console.log('...done');
+                        if (err) next(err);
+                        else next();
+                    });
+                    
+                    /*
                     var tasks = [];
                     diff.forEach((renID) => {
                         tasks.push(this.initializeUser(renID));
@@ -173,6 +189,7 @@ module.exports = {
                     .catch((err) => {
                         next(err);
                     });
+                    */
                 }
             
             ], (err) => {
