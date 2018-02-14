@@ -119,16 +119,21 @@ module.exports = {
             
             async.series([
                 (next) => {
-                    // Find workers who have not been terminated
+                    // Find active workers
                     LHRISWorker.query(`
                         
                         SELECT
-                            ren_id
+                            w.ren_id
                         FROM
-                            hris_worker
+                            hris_worker w
+                            JOIN hris_ren_data r
+                                ON w.ren_id = r.ren_id
                         WHERE
-                            worker_terminationdate = '1000-01-01'
-                            OR worker_terminationdate > NOW()
+                            r.statustype_id IN (3, 4, 5)
+                            AND (
+                                w.worker_terminationdate = '1000-01-01'
+                                OR w.worker_terminationdate > NOW()
+                            )
                         
                     `, [], (err, list) => {
                         if (err) next(err);
