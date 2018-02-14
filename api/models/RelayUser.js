@@ -6,6 +6,7 @@
 var async = require('async');
 var _ = require('lodash');
 var NodeRSA = require('node-rsa');
+var child_process = require('child_process');
 
 module.exports = {
     
@@ -82,6 +83,56 @@ module.exports = {
                 return;
             }
             
+            var privateKey, publicKey;
+            
+            async.series([
+            
+                (next) => {
+                    // Generate private key
+                    child_process.exec('openssl genrsa 2048', (err, stdout) => {
+                        if (err) next(err);
+                        else {
+                            privateKey = stdout;
+                            next();
+                        }
+                    });
+                },
+                
+                (next) => {
+                    // Generate public key
+                    var proc = child_process.exec('openssl rsa -outform PEM -pubout', (err, stdout) => {
+                        if (err) next(err);
+                        else {
+                            publicKey = stdout;
+                            next();
+                        }
+                    });
+                    proc.stdin.write(privateKey);
+                    proc.stdin.end();
+                },
+                
+                (next) => {
+                    // Save to database
+                    RelayUser.query(`
+                        
+                        REPLACE INTO relay_user
+                        SET
+                            ren_id = ?,
+                            rsa_private_key = ?,
+                            rsa_public_key = ?
+                        
+                    `, [renID, privateKey, publicKey], (err) => {
+                        if (err) next(err);
+                        else next();
+                    });
+                },
+                
+            ], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+            
+            /*
             setImmediate(() => {
                 var rsa = new NodeRSA({ b: 2048 });
                 var privateKey = rsa.exportKey('private');
@@ -100,7 +151,7 @@ module.exports = {
                     else resolve();
                 });
             });
-            
+            */
             
         });
     },
