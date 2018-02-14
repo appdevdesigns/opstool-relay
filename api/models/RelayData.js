@@ -56,7 +56,8 @@ module.exports = {
         ///
         
         /**
-         * Decrypts `this.data`.
+         * Decrypts `this.data`. Object instance's properties will be modified,
+         * but changes are not saved to the DB yet.
          *
          * If `type` is 'rsa', the rsa_private_key from RelayUser will be used.
          * If `type` is 'aes', the matching aes_key from RelayApplicationUser
@@ -86,9 +87,17 @@ module.exports = {
                     if (this.type == 'rsa' && list[0]) {
                         var key = list[0].rsa_private_key;
                         try {
-                            var plaintext = crypto.privateDecrypt(key, this.data);
+                            var plaintext = crypto.privateDecrypt(
+                                {
+                                    key: key,
+                                    padding: crypto.constants.RSA_NO_PADDING
+                                    //padding: crypto.constants.RSA_PKCS1_PADDING
+                                    //padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
+                                },
+                                Buffer.from(this.data, 'base64')
+                            );
                             if (plaintext) {
-                                this.data = plaintext;
+                                this.data = plaintext.toString();
                                 this.type = 'plaintext';
                             }
                         } catch (err) {
@@ -113,7 +122,11 @@ module.exports = {
                             var plaintext = decrypted.toString(CryptoJS.enc.Utf8);
                             
                             /*
-                            var decipher = crypto.createDecipher('aes-256-cbc', key, iv)
+                            var decipher = crypto.createDecipheriv(
+                                'aes-256-cbc', 
+                                Buffer.from(key, 'hex'), 
+                                Buffer.from(iv, 'hex')
+                            );
                             var plaintext = decipher.update(ciphertext, 'hex', 'utf8');
                             plaintext += decipher.final('utf8');
                             */
@@ -207,7 +220,7 @@ module.exports = {
     
     
     /**
-     * Export outgoing data to the external relay server.
+     * Export outgoing data intended for the external relay server.
      * 
      * @param {string} application
      * @return {Promise}
@@ -283,7 +296,12 @@ module.exports = {
             
             // Find RSA packets first
             // (that's how the AES key is initially delivered)
-            RelayData.find({ application: application, ren_id: renID, type: 'rsa' })
+            RelayData.find({ 
+                application: application, 
+                ren_id: renID, 
+                type: 'rsa', 
+                destination: 'vpn' }
+            )
             .then((list) => {
                 packets = list;
                 
@@ -298,12 +316,20 @@ module.exports = {
                 var aesKey = null;
                 
                 decrypted.forEach((d) => {
-                    if (d && d.aesKey) {
-                        // The packet contained the AES key
-                        aesKey = d.aesKey;
+                    if (Array.isArray(d)) {
+                        d.forEach((o) => {
+                            // Found AES key
+                            if (o && o.aesKey) {
+                                aesKey = o.aesKey;
+                            }
+                            // Normal data
+                            else {
+                                results.push(o);
+                            }
+                        });
                     }
                     else if (d) {
-                        // Normal data
+                        // Unexpected non-array data, but we can deal with it
                         results.push(d);
                     }
                     else {
@@ -331,7 +357,12 @@ module.exports = {
             })
             .then(() => {
                 // Find AES and plaintext packets
-                return RelayData.find({ application: application, ren_id: renID, type: { '!': 'rsa' } })
+                return RelayData.find({ 
+                    application: application, 
+                    ren_id: renID, 
+                    type: { '!': 'rsa' }, 
+                    destination: 'vpn' }
+                );
             })
             .then((list) => {
                 packets = list;
@@ -345,7 +376,13 @@ module.exports = {
             })
             .then((decryptedResults) => {
                 decryptedResults.forEach((d) => {
-                    if (d) {
+                    if (Array.isArray(d)) {
+                        // Expected packet format is an array of JSON objects.
+                        // Combine with results array.
+                        results = results.concat(d);
+                    }
+                    else if (d) {
+                        // Unexpected format, just add to results array
                         results.push(d);
                     }
                     else {
