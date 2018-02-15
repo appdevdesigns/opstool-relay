@@ -114,22 +114,22 @@ module.exports = {
                         var iv = dataParts[1];
                         
                         try {
+                            /*
                             var decrypted = CryptoJS.AES.decrypt(
                                 ciphertext, 
                                 CryptoJS.enc.Hex.parse(key),
                                 { iv: CryptoJS.enc.Hex.parse(iv) }
                             );
                             var plaintext = decrypted.toString(CryptoJS.enc.Utf8);
+                            */
                             
-                            /*
                             var decipher = crypto.createDecipheriv(
                                 'aes-256-cbc', 
                                 Buffer.from(key, 'hex'), 
                                 Buffer.from(iv, 'hex')
                             );
-                            var plaintext = decipher.update(ciphertext, 'hex', 'utf8');
+                            var plaintext = decipher.update(ciphertext, 'base64', 'utf8');
                             plaintext += decipher.final('utf8');
-                            */
                             
                             if (plaintext) {
                                 this.data = plaintext;
@@ -440,11 +440,22 @@ module.exports = {
                     // Encrypt data
                     var plaintext = JSON.stringify(data);
                     var iv = crypto.randomBytes(16).toString('hex');
+                    
+                    /*
                     var ciphertext = CryptoJS.AES.encrypt(
                         plaintext,
                         CryptoJS.enc.Hex.parse(list[0].aes_key),
                         { iv: CryptoJS.enc.Hex.parse(iv) }
                     );
+                    */
+                    var cipher = crypto.createCipheriv(
+                        'aes-256-cbc',
+                        Buffer.from(list[0].aes_key, 'hex'),
+                        Buffer.from(iv, 'hex')
+                    );
+                    var ciphertext = cipher.update(plaintext, 'utf8', 'base64');
+                    ciphertext += cipher.final('base64');
+                    
                     // <base64 encoded cipher text>:::<hex encoded IV>
                     var encoded = ciphertext.toString() + ':::' + iv;
                 }
