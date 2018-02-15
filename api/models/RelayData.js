@@ -90,8 +90,8 @@ module.exports = {
                             var plaintext = crypto.privateDecrypt(
                                 {
                                     key: key,
-                                    padding: crypto.constants.RSA_NO_PADDING
-                                    //padding: crypto.constants.RSA_PKCS1_PADDING
+                                    //padding: crypto.constants.RSA_NO_PADDING
+                                    padding: crypto.constants.RSA_PKCS1_PADDING
                                     //padding: crypto.constants.RSA_PKCS1_OAEP_PADDING
                                 },
                                 Buffer.from(this.data, 'base64')
