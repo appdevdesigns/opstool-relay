@@ -213,20 +213,22 @@ module.exports = {
                 
                 (next) => {
                     var diff = _.difference(hrisRen, relayUsers);
-                    console.log('Initializing ' + diff.length + ' relay accounts...');
+                    sails.log('Initializing ' + diff.length + ' relay accounts...');
                     
                     // Initialize new users one at a time
                     async.eachSeries(diff, (renID, userDone) => {
                         this.initializeUser(renID)
                         .then(() => {
-                            console.log('...initialized user ' + renID);
+                            sails.log.verbose('...initialized user ' + renID);
                             userDone();
                         })
                         .catch((err) => {
                             userDone(err);
                         });
                     }, (err) => {
-                        console.log('...done');
+                        err && sails.log.error(err);
+                        sails.log('...done');
+                        
                         if (err) next(err);
                         else next();
                     });
@@ -239,7 +241,7 @@ module.exports = {
                     
                     Promise.all(tasks)
                     .then(() => {
-                        console.log('Done');
+                        sails.log('Done');
                         next();
                     })
                     .catch((err) => {
@@ -250,7 +252,7 @@ module.exports = {
             
             ], (err) => {
                 if (err) {
-                    console.log('Error initializing relay users from HRIS', err);
+                    sails.log.error('Error initializing relay users from HRIS', err);
                     reject(err);
                 }
                 else resolve();

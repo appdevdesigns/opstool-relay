@@ -5,7 +5,7 @@
 
 var async = require('async');
 var _ = require('lodash');
-var CryptoJS = require('crypto-js');
+//var CryptoJS = require('crypto-js');
 var crypto = require('crypto');
 
 module.exports = {
@@ -102,7 +102,7 @@ module.exports = {
                             }
                         } catch (err) {
                             // could not decrypt
-                            console.log('Unable to decrypt RSA', err);
+                            sails.log.error('Unable to decrypt RSA', err);
                         }
                     }
                     else if (this.type == 'aes' && list[0]) {
@@ -137,7 +137,7 @@ module.exports = {
                             }
                         } catch (err) {
                             // could not decrypt
-                            console.log('Unable to decrypt AES', err);
+                            sails.log.error('Unable to decrypt AES', err);
                         }
                     }
                     
@@ -193,7 +193,8 @@ module.exports = {
                     RelayApplicationUser.find({ user: packet.user, application: application })
                     .then((userList) => {
                         if (!userList || !userList[0]) {
-                            console.log('No local user match when importing from relay', packet);
+                            sails.log.warn('No local user match when importing from relay', packet);
+                            return null;
                         }
                         else {
                             var renID = userList[0].ren_id;
@@ -202,7 +203,7 @@ module.exports = {
                                 application: application,
                                 destination: 'vpn',
                                 data: packet.data
-                            })
+                            });
                         }
                     })
                     .then(() => {
