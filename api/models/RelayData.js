@@ -282,12 +282,13 @@ module.exports = {
     
     
     /**
-     * Fetch and decrypt incoming data for an application user.
+     * Fetch and decrypt incoming data for a given user of an application.
      * 
      * @param {string} application
      * @param {integer} renID
      * @return {Promise}
      *      Resolves with array of JSON objects
+     *      [ {json}, {json}, ... ]
      */
     retrieveUserData: function(application, renID) {
         return new Promise((resolve, reject) => {
@@ -407,6 +408,61 @@ module.exports = {
             })
             .catch((err) => {
                 reject(err);
+            });
+        });
+    },
+    
+    
+    /**
+     * Fetch and decrypt incoming data for all users of an application.
+     *
+     * @param {string} application
+     * @return {Promise}
+     *      Resolves with {object}
+     *          {
+     *              <ren_id>: [ {json}, {json}, ... ],
+     *              <ren_id>: [ ... ],
+     *              ...
+     *          }
+     */
+    retrieveAllUserData: function(application) {
+        return new Promise((resolve, reject) => {
+            var renIDs = [];
+            
+            // Using a direct SQL query so we can limit the selected fields.
+            // We don't need to pull out all the LONGTEXT data now.
+            RelayData.query(`
+                
+                SELECT ren_id
+                FROM relay_data
+                WHERE 
+                    application = ?
+                    AND destination = 'vpn'
+                
+            `, [application], (err, list) => {
+                Promise.resolve()
+                .then(() => {
+                    if (err) throw(err);
+                    
+                    var tasks = [];
+                    list.forEach((row) => {
+                        renIDs.push(row.ren_id);
+                        tasks.push(RelayData.retrieveUserData(application, row.ren_id));
+                    });
+                    
+                    return Promise.all(tasks);
+                })
+                .then((results=[]) => {
+                    var finalResult = {};
+                    for (var i=0; i<results.length; i++) {
+                        var renID = renIDs[i];
+                        finalResult[renID] = results[i];
+                    }
+                    resolve(finalResult);
+                })
+                .catch((err) => {
+                    reject(err);
+                });
             });
         });
     },
