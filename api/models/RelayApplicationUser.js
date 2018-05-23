@@ -104,6 +104,47 @@ module.exports = {
                 else resolve();
             });
         });
+    },
+    
+    
+    
+    /**
+     * Finds the RSA public keys for all users of a given application.
+     *
+     * @param {string} application
+     * @return {Promise}
+     *      {
+     *          <user>: <rsa_public_key>,
+     *          ...
+     *      }
+     */
+    findPublicKeys: function(application) {
+        return new Promise((resolve, reject) => {
+            RelayApplicationUser.query(`
+                
+                SELECT
+                    au.user,
+                    u.rsa_public_key
+                FROM
+                    relay_application_user au
+                    JOIN relay_user u
+                        ON au.ren_id = u.ren_id
+                WHERE
+                    au.application = ?
+                    
+            `, [application], (err, list) => {
+                if (err) reject(err);
+                else {
+                    // Convert results in object indexed by user GUID
+                    var results = {};
+                    list.forEach((row) => {
+                        var userGUID = row.user;
+                        results[userGUID] = row.rsa_public_key;
+                    });
+                    resolve(results);
+                }
+            });
+        });
     }
     
 
