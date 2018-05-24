@@ -213,7 +213,9 @@ module.exports = {
                 
                 (next) => {
                     var diff = _.difference(hrisRen, relayUsers);
-                    sails.log('Initializing ' + diff.length + ' relay accounts...');
+                    if (diff.length > 0) {
+                        sails.log('Initializing ' + diff.length + ' relay accounts...');
+                    }
                     
                     // Initialize new users one at a time
                     async.eachSeries(diff, (renID, userDone) => {
@@ -227,7 +229,9 @@ module.exports = {
                         });
                     }, (err) => {
                         err && sails.log.error(err);
-                        sails.log('...done');
+                        if (diff.length > 0) {
+                            sails.log('...done');
+                        }
                         
                         if (err) next(err);
                         else next();
